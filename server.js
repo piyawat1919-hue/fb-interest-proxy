@@ -33,24 +33,36 @@ app.get("/health", (_req, res) => {
 
 app.get("/interests", async (req, res) => {
   try {
-    const { q, limit = "20", locale = "en_US", method = "search" } = req.query;
+    const {
+      q,
+      limit = "20",
+      locale = "en_US",
+      method = "search" // "search" หรือ "targetingsearch"
+    } = req.query;
+
     if (!q) return res.status(400).json({ error: "Missing q" });
     if (!ACCESS_TOKEN) return res.status(500).json({ error: "No Access Token" });
 
     const endpoint = method === "targetingsearch" ? "targetingsearch" : "search";
-const data = await callGraph(endpoint, {
-  type: "adinterest",
-  q,
-  limit,
-  locale,
-  fields: "id,name,audience_size,topic_path,path"
-});
 
+    // ❗ ไม่มี fields=... เพื่อหลีกเลี่ยง error #100
+    const data = await callGraph(endpoint, {
+      type: "adinterest",
+      q,
+      limit,
+      locale
+    });
+
+    // รองรับค่าหลายแบบของ “ขนาดกลุ่ม” (บางเวอร์ชันไม่มี audience_size)
     const rows = (data?.data || []).map(item => ({
       id: item.id,
       name: item.name,
-      topic_path: item.path || [],
-      audience_size: item.audience_size || null
+      topic_path: item.path || item.topic_path || [],
+      audience_size:
+        item.audience_size ??
+        item.audience_size_upper_bound ??
+        item.audience_size_lower_bound ??
+        null
     }));
 
     res.json({ count: rows.length, data: rows });
