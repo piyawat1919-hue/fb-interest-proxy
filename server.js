@@ -38,7 +38,13 @@ app.get("/interests", async (req, res) => {
     if (!ACCESS_TOKEN) return res.status(500).json({ error: "No Access Token" });
 
     const endpoint = method === "targetingsearch" ? "targetingsearch" : "search";
-    const data = await callGraph(endpoint, { type: "adinterest", q, limit, locale });
+const data = await callGraph(endpoint, {
+  type: "adinterest",
+  q,
+  limit,
+  locale,
+  fields: "id,name,audience_size,topic_path,path"
+});
 
     const rows = (data?.data || []).map(item => ({
       id: item.id,
